@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth, API_URL } from '../contexts/AuthContext';
 
@@ -91,7 +90,6 @@ const EMOTION_CATEGORIES = {
 
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [students, setStudents] = useState<StudentStatus[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [checkData, setCheckData] = useState<CheckData>({});
@@ -203,7 +201,12 @@ export default function TeacherDashboard() {
   };
 
   const handleStudentClick = (student: StudentStatus) => {
-    setSelectedStudent(student);
+    setSelectedStudent({
+      id: student.id,
+      name: student.name,
+      classNumber: student.class_number,
+      classCode: user?.classCode || ''
+    });
     setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
@@ -545,12 +548,7 @@ export default function TeacherDashboard() {
           {students.map((student) => (
             <div
               key={student.id}
-              onClick={() => handleStudentClick({
-                id: student.id,
-                name: student.name,
-                classNumber: student.class_number,
-                classCode: user?.classCode || ''
-              })}
+              onClick={() => handleStudentClick(student)}
               className={`${getCardStyle(student)} p-5 card-hover cursor-pointer relative`}
             >
               <div className="absolute top-3 right-3 flex gap-2">

@@ -20,7 +20,7 @@ interface CheckItem {
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [, setPlans] = useState<Plan[]>([]);
   const [checks, setChecks] = useState<CheckItem[]>([]);
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [newPlanText, setNewPlanText] = useState('');
@@ -106,9 +106,6 @@ export default function StudentDashboard() {
     fetchTodayChecks();
     fetchRoleInfo();
   }, []);
-
-
-  const fetchEmotionData = async () => {
     try {
       const now = new Date();
       const hour = now.getHours();
@@ -248,7 +245,6 @@ export default function StudentDashboard() {
       const infoResponse = await axios.get(`${API_URL}/student/info`);
       setRole(infoResponse.data.role || '');
       
-      const today = new Date().toISOString().split('T')[0];
       const checkResponse = await axios.get(`${API_URL}/student/role/check/today`);
       setRoleChecked(checkResponse.data.is_checked || 0);
     } catch (error) {
@@ -280,7 +276,6 @@ export default function StudentDashboard() {
 
   const fetchTodayChecks = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
       const response = await axios.get(`${API_URL}/student/checks/today`);
       setChecks(response.data);
     } catch (error) {

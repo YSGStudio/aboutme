@@ -172,7 +172,6 @@ export default function StudentStats() {
                     const centerY = 150;
                     
                     return stats.emotionStats.map((stat, index) => {
-                      const percentage = (stat.count / total) * 100;
                       const angle = (stat.count / total) * 360;
                       const startAngle = currentAngle;
                       const endAngle = currentAngle + angle;
