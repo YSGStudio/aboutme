@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build",
-    "preview": "vite preview"
+    "build": "vite build",
+    "preview": "vite preview",
+    "postinstall": "echo 'Dependencies installed'"
   },
   "dependencies": {
     "react": "^18.2.0",
