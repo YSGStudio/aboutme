@@ -25,10 +25,11 @@ export default function TeacherLogin() {
       });
 
       login(response.data.token, response.data.user);
-      // 상태 업데이트 후 네비게이션
+      // localStorage에 저장된 후 네비게이션
+      // window.location을 사용하여 강제 리다이렉트 (상태 업데이트 문제 방지)
       setTimeout(() => {
-        navigate('/teacher/dashboard', { replace: true });
-      }, 50);
+        window.location.href = '/teacher/dashboard';
+      }, 100);
     } catch (err: any) {
       setError(err.response?.data?.error || '로그인에 실패했습니다.');
     }

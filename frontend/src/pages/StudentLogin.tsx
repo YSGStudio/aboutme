@@ -21,10 +21,11 @@ export default function StudentLogin() {
       });
 
       login(response.data.token, response.data.user);
-      // 상태 업데이트 후 네비게이션
+      // localStorage에 저장된 후 네비게이션
+      // window.location을 사용하여 강제 리다이렉트 (상태 업데이트 문제 방지)
       setTimeout(() => {
-        navigate('/student/dashboard', { replace: true });
-      }, 50);
+        window.location.href = '/student/dashboard';
+      }, 100);
     } catch (err: any) {
       setError(err.response?.data?.error || '로그인에 실패했습니다.');
     }
