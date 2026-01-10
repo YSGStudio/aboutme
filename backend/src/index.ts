@@ -16,7 +16,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+// CORS 설정 - 프로덕션에서는 모든 도메인 허용 (필요시 특정 도메인만 허용 가능)
+app.use(cors({
+  origin: true, // 모든 origin 허용
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // 데이터베이스 초기화

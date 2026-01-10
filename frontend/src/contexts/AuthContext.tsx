@@ -4,6 +4,10 @@ import axios from 'axios';
 // 환경 변수에서 API URL 가져오기 (배포 시 설정)
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+// 디버깅: API URL 확인
+console.log('API_URL:', API_URL);
+console.log('VITE_API_URL env:', import.meta.env.VITE_API_URL);
+
 interface User {
   id: number;
   email?: string;
@@ -26,6 +30,29 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+
+  // axios 인터셉터 추가 - 에러 로깅
+  axios.interceptors.request.use(
+    (config) => {
+      console.log('API Request:', config.method?.toUpperCase(), config.url);
+      return config;
+    },
+    (error) => {
+      console.error('API Request Error:', error);
+      return Promise.reject(error);
+    }
+  );
+
+  axios.interceptors.response.use(
+    (response) => {
+      return response;
+    },
+    (error) => {
+      console.error('API Response Error:', error.response?.status, error.response?.data);
+      console.error('Request URL:', error.config?.url);
+      return Promise.reject(error);
+    }
+  );
 
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
