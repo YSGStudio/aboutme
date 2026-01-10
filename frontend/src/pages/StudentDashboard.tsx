@@ -106,52 +106,6 @@ export default function StudentDashboard() {
     fetchTodayChecks();
     fetchRoleInfo();
   }, []);
-    try {
-      const now = new Date();
-      const hour = now.getHours();
-      const today = now.toISOString().split('T')[0];
-      
-      // 새벽 1시 이후인지 확인
-      if (hour >= 1) {
-        // 새벽 1시 이후: 오늘 날짜의 감정 확인
-        const response = await axios.get(`${API_URL}/student/emotion/today`);
-        const hasEmotion = !!(response.data.emotion && response.data.emotion.trim() !== '');
-        
-        if (hasEmotion) {
-          setHasEmotionToday(true);
-          setSelectedEmotion(response.data.emotion || '');
-          setEmotionReason(response.data.reason || '');
-          fetchEmotionFeed(today);
-        } else {
-          setHasEmotionToday(false);
-          setSelectedEmotion('');
-          setEmotionReason('');
-        }
-      } else {
-        // 새벽 1시 이전: 어제 날짜의 감정 피드 표시
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayDate = yesterday.toISOString().split('T')[0];
-        
-        try {
-          const feedResponse = await axios.get(`${API_URL}/student/emotion/feed/${yesterdayDate}`);
-          const hasMyEmotion = feedResponse.data.some((item: any) => item.student_id === user?.id);
-          
-          if (hasMyEmotion) {
-            setHasEmotionToday(true);
-            fetchEmotionFeed(yesterdayDate);
-          } else {
-            setHasEmotionToday(false);
-          }
-        } catch (error) {
-          setHasEmotionToday(false);
-        }
-      }
-    } catch (error) {
-      console.error('감정 데이터 조회 실패:', error);
-      setHasEmotionToday(false);
-    }
-  };
 
   const fetchEmotionFeed = async (date: string) => {
     try {
