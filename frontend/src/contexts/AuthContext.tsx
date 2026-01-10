@@ -38,11 +38,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = (newToken: string, newUser: User) => {
-    setToken(newToken);
-    setUser(newUser);
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+    // 상태 업데이트를 동기적으로 처리
+    setToken(newToken);
+    setUser(newUser);
   };
 
   const logout = () => {

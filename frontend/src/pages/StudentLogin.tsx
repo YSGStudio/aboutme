@@ -21,7 +21,10 @@ export default function StudentLogin() {
       });
 
       login(response.data.token, response.data.user);
-      navigate('/student/dashboard');
+      // React 상태 업데이트를 기다린 후 네비게이션
+      requestAnimationFrame(() => {
+        navigate('/student/dashboard', { replace: true });
+      });
     } catch (err: any) {
       setError(err.response?.data?.error || '로그인에 실패했습니다.');
     }
