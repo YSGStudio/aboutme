@@ -126,6 +126,7 @@ export default function TeacherDashboard() {
 
   const fetchStudentStatus = async () => {
     try {
+      console.log('fetchStudentStatus 호출, API_URL:', API_URL);
       const statusResponse = await axios.get(`${API_URL}/teacher/students/status`);
       const studentsResponse = await axios.get(`${API_URL}/teacher/students`);
       
@@ -139,8 +140,11 @@ export default function TeacherDashboard() {
       });
       
       setStudents(studentsWithRole);
-    } catch (error) {
+    } catch (error: any) {
       console.error('학생 상태 조회 실패:', error);
+      console.error('에러 상세:', error.response?.data);
+      console.error('요청 URL:', error.config?.url);
+      alert(`학생 데이터를 불러오는데 실패했습니다: ${error.response?.data?.error || error.message}`);
     }
   };
 

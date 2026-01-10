@@ -25,10 +25,10 @@ export default function TeacherLogin() {
       });
 
       login(response.data.token, response.data.user);
-      // React 상태 업데이트를 기다린 후 네비게이션
-      requestAnimationFrame(() => {
+      // 상태 업데이트 후 네비게이션
+      setTimeout(() => {
         navigate('/teacher/dashboard', { replace: true });
-      });
+      }, 50);
     } catch (err: any) {
       setError(err.response?.data?.error || '로그인에 실패했습니다.');
     }
