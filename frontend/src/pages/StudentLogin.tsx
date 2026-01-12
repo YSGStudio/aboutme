@@ -32,9 +32,20 @@ export default function StudentLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{
+    <div className="min-h-screen flex items-center justify-center p-4 relative" style={{
       background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
     }}>
+      {/* 홈 버튼 */}
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-4 right-4 md:top-6 md:right-6 w-12 h-12 rounded-full bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 flex items-center justify-center group"
+        aria-label="홈으로 이동"
+      >
+        <svg className="w-6 h-6 text-pink-600 group-hover:text-pink-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      </button>
+
       <div className="card w-full max-w-md p-8 md:p-10">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-pink-600 to-red-600 bg-clip-text text-transparent">
