@@ -18,6 +18,7 @@ interface StudentStatus {
   checkedCount: number;
   totalCount: number;
   roleChecked?: boolean;
+  emotionChecked?: boolean;
 }
 
 interface CheckData {

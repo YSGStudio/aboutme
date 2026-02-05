@@ -352,7 +352,7 @@ export class SimpleDB {
     this.save();
   }
 
-  getStudentStatus(teacherId: number, date: string): Array<{ id: number; name: string; class_number: number; isCompleted: boolean; checkedCount: number; totalCount: number; roleChecked: boolean }> {
+  getStudentStatus(teacherId: number, date: string): Array<{ id: number; name: string; class_number: number; isCompleted: boolean; checkedCount: number; totalCount: number; roleChecked: boolean; emotionChecked: boolean }> {
     const students = this.getStudentsByTeacherId(teacherId);
     return students.map(student => {
       const plans = this.getPlansByStudentId(student.id);
@@ -365,11 +365,15 @@ export class SimpleDB {
       const hasRole = student.role && student.role.trim() !== '';
       const roleCheck = hasRole ? this.getRoleCheck(student.id, date) : null;
       const roleChecked = !hasRole || (roleCheck && roleCheck.is_checked === 1);
+
+      // 감정 체크 확인
+      const emotionData = this.getEmotionData(student.id, date);
+      const emotionChecked = !!(emotionData && emotionData.emotion && emotionData.emotion.trim() !== '');
       
-      // 계획과 교실역할 모두 완료되어야 완전히 완료 (완료(1)로 체크된 것만 완료로 간주)
+      // 계획, 교실역할, 감정을 모두 완료해야 완전히 완료 (완료(1)로 체크된 것만 완료로 간주)
       const completedCount = checks.filter(c => c.is_checked === 1).length;
       const plansCompleted = totalCount > 0 && completedCount === totalCount;
-      const isCompleted = plansCompleted && roleChecked;
+      const isCompleted = plansCompleted && roleChecked && emotionChecked;
       
       return {
         id: student.id,
@@ -378,7 +382,8 @@ export class SimpleDB {
         isCompleted: !!isCompleted,
         checkedCount,
         totalCount,
-        roleChecked: !!roleChecked
+        roleChecked: !!roleChecked,
+        emotionChecked
       };
     });
   }
