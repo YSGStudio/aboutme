@@ -290,13 +290,6 @@ export default function StudentDashboard() {
     }
   };
 
-  const getCompletionRate = () => {
-    if (checks.length === 0) return 0;
-    // 완료(1) 또는 미완료(0) 모두 체크된 것으로 간주
-    const checkedCount = checks.filter(c => c.is_checked === 1 || c.is_checked === 0).length;
-    return Math.round((checkedCount / checks.length) * 100);
-  };
-
   return (
     <div className="min-h-screen" style={{
       background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
@@ -307,6 +300,12 @@ export default function StudentDashboard() {
             {user?.name}님의 주간계획
           </h1>
           <div className="flex gap-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary bg-gradient-to-r from-sky-500 to-blue-500"
+            >
+              새로고침
+            </button>
             <button
               onClick={() => navigate('/student/stats')}
               className="btn-primary bg-gradient-to-r from-indigo-500 to-purple-500"
@@ -668,26 +667,6 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-700">오늘의 실천률</span>
-              <span className="text-sm font-semibold text-gray-800">
-                {getCompletionRate()}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-6">
-              <div
-                className="bg-gradient-to-r from-blue-500 to-green-500 h-6 rounded-full transition-all duration-300 flex items-center justify-center"
-                style={{ width: `${getCompletionRate()}%` }}
-              >
-                {getCompletionRate() > 0 && (
-                  <span className="text-white text-xs font-semibold">
-                    {getCompletionRate()}%
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

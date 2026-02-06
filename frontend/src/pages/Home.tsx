@@ -10,8 +10,8 @@ export default function Home() {
       <div className="w-full max-w-4xl">
         {/* 헤더 */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
-            주간계획 플래너
+          <h1 className="text-5xl md:text-6xl font-black mb-4 text-white">
+            AboutMe
           </h1>
           <p className="text-white/90 text-lg md:text-xl">
             학생들과 함께 주간계획을 세우고 실천해보세요

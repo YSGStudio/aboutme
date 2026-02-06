@@ -304,12 +304,20 @@ export default function TeacherDashboard() {
             </h1>
             <p className="text-sm text-gray-500 mt-1">학급코드: {user?.classCode}</p>
           </div>
-          <button
-            onClick={logout}
-            className="btn-primary bg-gradient-to-r from-red-500 to-pink-500"
-          >
-            로그아웃
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary bg-gradient-to-r from-sky-500 to-blue-500"
+            >
+              새로고침
+            </button>
+            <button
+              onClick={logout}
+              className="btn-primary bg-gradient-to-r from-red-500 to-pink-500"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
       </header>
 
