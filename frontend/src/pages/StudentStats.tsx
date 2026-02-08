@@ -3,13 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth, API_URL } from '../contexts/AuthContext';
 
-interface DailyStat {
-  check_date: string;
-  total_plans: number;
-  checked_plans: number;
-  success_rate: number;
-}
-
 interface PlanStat {
   id: number;
   plan_text: string;
@@ -43,7 +36,6 @@ interface EmotionStat {
 }
 
 interface StatsData {
-  dailyStats: DailyStat[];
   planStats: PlanStat[];
   emotionStats: EmotionStat[];
 }
@@ -54,8 +46,6 @@ export default function StudentStats() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [dateStat, setDateStat] = useState<DateStat | null>(null);
-  const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
-  const [uncheckedPlans, setUncheckedPlans] = useState<Record<string, UncheckedPlan[]>>({});
 
   useEffect(() => {
     fetchStats();
@@ -85,36 +75,6 @@ export default function StudentStats() {
     } catch (error) {
       console.error('날짜별 데이터 조회 실패:', error);
     }
-  };
-
-  const fetchUncheckedPlans = async (date: string) => {
-    if (uncheckedPlans[date]) {
-      toggleDate(date);
-      return;
-    }
-
-    try {
-      const response = await axios.get(`${API_URL}/student/stats/unchecked/${date}`);
-      setUncheckedPlans(prev => ({
-        ...prev,
-        [date]: response.data
-      }));
-      setExpandedDates(prev => new Set(prev).add(date));
-    } catch (error) {
-      console.error('미완료 계획 조회 실패:', error);
-    }
-  };
-
-  const toggleDate = (date: string) => {
-    setExpandedDates(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(date)) {
-        newSet.delete(date);
-      } else {
-        newSet.add(date);
-      }
-      return newSet;
-    });
   };
 
   const formatDate = (dateString: string) => {
@@ -345,82 +305,6 @@ export default function StudentStats() {
           )}
         </div>
 
-        {/* 일자별 성공률 차트 */}
-        <div className="card p-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">일자별 실천 성공률</h2>
-          {stats.dailyStats.length === 0 ? (
-            <div className="text-gray-500 text-center py-8">데이터가 없습니다.</div>
-          ) : (
-            <div className="space-y-4">
-              {stats.dailyStats.map((stat) => {
-                const isExpanded = expandedDates.has(stat.check_date);
-                const hasUnchecked = stat.checked_plans < stat.total_plans;
-                
-                return (
-                  <div key={stat.check_date} className="border-b pb-4 last:border-b-0">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-gray-700">
-                          {formatDate(stat.check_date)}
-                        </span>
-                        {hasUnchecked && (
-                          <button
-                            onClick={() => fetchUncheckedPlans(stat.check_date)}
-                            className="text-xs text-red-600 hover:text-red-800 font-medium"
-                          >
-                            {isExpanded ? '▼ 미완료 계획 숨기기' : '▶ 미완료 계획 보기'}
-                          </button>
-                        )}
-                      </div>
-                      <span className="text-sm font-semibold text-gray-800">
-                        {stat.success_rate}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                      <div
-                        className={`h-3 rounded-full ${
-                          stat.success_rate >= 80
-                            ? 'bg-green-500'
-                            : stat.success_rate >= 50
-                            ? 'bg-yellow-500'
-                            : 'bg-red-500'
-                        }`}
-                        style={{ width: `${stat.success_rate}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-500 mb-2">
-                      {stat.checked_plans}/{stat.total_plans} 완료
-                    </div>
-                    
-                    {/* 미완료 계획 드롭다운 */}
-                    {isExpanded && uncheckedPlans[stat.check_date] && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="text-sm font-semibold text-red-700 mb-2">
-                          미완료 계획 ({uncheckedPlans[stat.check_date].length}개)
-                        </div>
-                        <div className="space-y-1">
-                          {uncheckedPlans[stat.check_date].length === 0 ? (
-                            <div className="text-sm text-gray-600">모든 계획을 완료했습니다!</div>
-                          ) : (
-                            uncheckedPlans[stat.check_date].map((plan) => (
-                              <div
-                                key={plan.plan_id}
-                                className="text-sm text-gray-700 flex items-center gap-2"
-                              >
-                                <span className="text-red-500">✗</span>
-                                <span>{plan.plan_text}</span>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
