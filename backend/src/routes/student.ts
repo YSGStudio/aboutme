@@ -304,29 +304,12 @@ router.get('/stats/date/:date', (req: AuthRequest, res) => {
     const studentId = req.userId!;
     const date = req.params.date;
 
-    const checks = db.getCheckData(studentId, date);
-    const plans = db.getPlansByStudentId(studentId);
-    
-    const planChecks = plans.map(plan => {
-      const check = checks.find(c => c.plan_id === plan.id);
-      return {
-        plan_id: plan.id,
-        plan_text: plan.plan_text,
-        is_checked: check ? check.is_checked : 0,
-        display_order: plan.display_order
-      };
-    });
-
-    const totalPlans = plans.length;
-    const checkedPlans = planChecks.filter(pc => pc.is_checked === 1).length;
-    const successRate = totalPlans > 0 ? Math.round((checkedPlans / totalPlans) * 100 * 100) / 100 : 0;
+    const emotionData = db.getEmotionData(studentId, date);
 
     res.json({
       date,
-      total_plans: totalPlans,
-      checked_plans: checkedPlans,
-      success_rate: successRate,
-      plan_checks: planChecks.sort((a, b) => a.display_order - b.display_order)
+      emotion: emotionData?.emotion || '',
+      reason: emotionData?.reason || ''
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

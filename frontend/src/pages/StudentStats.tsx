@@ -11,23 +11,10 @@ interface PlanStat {
   success_rate: number;
 }
 
-interface UncheckedPlan {
-  plan_id: number;
-  plan_text: string;
-  display_order: number;
-}
-
 interface DateStat {
   date: string;
-  total_plans: number;
-  checked_plans: number;
-  success_rate: number;
-  plan_checks: Array<{
-    plan_id: number;
-    plan_text: string;
-    is_checked: number;
-    display_order: number;
-  }>;
+  emotion: string;
+  reason: string;
 }
 
 interface EmotionStat {
@@ -230,41 +217,26 @@ export default function StudentStats() {
               <div className="text-lg font-medium text-gray-800 mb-2">
                 {formatDate(dateStat.date)}
               </div>
-              <div className="text-sm text-gray-600 mb-3">
-                실천률: {dateStat.success_rate}%
-                ({dateStat.checked_plans}/{dateStat.total_plans})
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-                <div
-                  className={`h-4 rounded-full ${
-                    dateStat.success_rate >= 80
-                      ? 'bg-green-500'
-                      : dateStat.success_rate >= 50
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
-                  }`}
-                  style={{ width: `${dateStat.success_rate}%` }}
-                />
-              </div>
-              <div className="space-y-2">
-                {dateStat.plan_checks.map((planCheck) => (
-                  <div
-                    key={planCheck.plan_id}
-                    className={`p-3 rounded-lg border ${
-                      planCheck.is_checked === 1
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-red-50 border-red-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={planCheck.is_checked === 1 ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-                        {planCheck.is_checked === 1 ? '✓' : '✗'}
-                      </span>
-                      <span className="text-gray-800">{planCheck.plan_text}</span>
+              {dateStat.emotion ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700">감정</span>
+                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                      {dateStat.emotion}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-700 mb-1">이유</div>
+                    <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-800 whitespace-pre-wrap">
+                      {dateStat.reason || '이유가 입력되지 않았습니다.'}
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-8">
+                  해당 날짜에 감정 데이터가 없습니다.
+                </div>
+              )}
             </div>
           )}
         </div>
