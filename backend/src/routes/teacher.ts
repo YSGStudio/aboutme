@@ -152,6 +152,25 @@ router.get('/students/:id/checks', (req: AuthRequest, res) => {
   }
 });
 
+// 학생의 감정 TOP 통계 조회
+router.get('/students/:id/emotion-stats', (req: AuthRequest, res) => {
+  try {
+    const teacherId = req.userId!;
+    const studentId = parseInt(req.params.id);
+    const limit = Math.max(1, parseInt((req.query.limit as string) || '3'));
+
+    const student = db.getStudentById(studentId);
+    if (!student || student.teacher_id !== teacherId) {
+      return res.status(404).json({ error: '학생을 찾을 수 없습니다.' });
+    }
+
+    const stats = db.getStudentEmotionStats(studentId).slice(0, limit);
+    res.json(stats);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 학생의 오늘 체크 상태 확인 (대시보드용)
 router.get('/students/status', (req: AuthRequest, res) => {
   try {

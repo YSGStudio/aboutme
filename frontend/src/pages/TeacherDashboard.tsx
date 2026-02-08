@@ -46,6 +46,11 @@ interface EmotionFeedItem {
   }>;
 }
 
+interface EmotionStat {
+  emotion: string;
+  count: number;
+}
+
 const EMOTION_CATEGORIES = {
   positive: {
     name: '긍정적 감정',
@@ -107,6 +112,7 @@ export default function TeacherDashboard() {
   const [emotionFeedDate, setEmotionFeedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState<string>('');
+  const [topEmotions, setTopEmotions] = useState<EmotionStat[]>([]);
 
   useEffect(() => {
     fetchStudentStatus();
@@ -124,6 +130,14 @@ export default function TeacherDashboard() {
       fetchCheckData(selectedStudent.id, selectedDate);
     }
   }, [selectedStudent, selectedDate]);
+
+  useEffect(() => {
+    if (selectedStudent) {
+      fetchTopEmotions(selectedStudent.id);
+    } else {
+      setTopEmotions([]);
+    }
+  }, [selectedStudent]);
 
   const fetchStudentStatus = async () => {
     try {
@@ -158,6 +172,24 @@ export default function TeacherDashboard() {
     } catch (error) {
       console.error('체크 데이터 조회 실패:', error);
     }
+  };
+
+  const fetchTopEmotions = async (studentId: number) => {
+    try {
+      const response = await axios.get(`${API_URL}/teacher/students/${studentId}/emotion-stats`, {
+        params: { limit: 3 }
+      });
+      setTopEmotions(response.data);
+    } catch (error: any) {
+      console.error('감정 통계 조회 실패:', error);
+      setTopEmotions([]);
+    }
+  };
+
+  const getEmotionCategoryConfig = (emotion: string) => {
+    return Object.values(EMOTION_CATEGORIES).find(category =>
+      category.emotions.includes(emotion)
+    );
   };
 
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -640,6 +672,37 @@ export default function TeacherDashboard() {
                 onChange={(e) => handleDateChange(e.target.value)}
                 className="input-modern w-auto"
               />
+            </div>
+
+            <div className="mb-4">
+              <div className="text-sm font-semibold text-gray-700 mb-2">
+                가장 많이 선택한 감정 TOP 3
+              </div>
+              {topEmotions.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {topEmotions.map((stat, index) => {
+                    const category = getEmotionCategoryConfig(stat.emotion);
+                    const badgeClass = category
+                      ? `bg-gradient-to-r ${category.color} border ${category.borderColor} text-white`
+                      : 'bg-gray-100 border border-gray-200 text-gray-700';
+                    const countClass = category ? 'text-white/90' : 'text-gray-600';
+
+                    return (
+                      <div
+                        key={`${stat.emotion}-${index}`}
+                        className={`px-3 py-1 rounded-full text-sm font-semibold ${badgeClass}`}
+                      >
+                        #{index + 1} {stat.emotion}
+                        <span className={`ml-2 text-xs font-medium ${countClass}`}>
+                          {stat.count}회
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">감정 데이터가 없습니다.</div>
+              )}
             </div>
 
             {checkData[selectedDate] && checkData[selectedDate].length > 0 ? (
