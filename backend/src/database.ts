@@ -325,7 +325,7 @@ export class SimpleDB {
         plan_id: plan.id,
         plan_text: plan.plan_text,
         display_order: plan.display_order,
-        is_checked: check ? check.is_checked : 0,
+        is_checked: check ? check.is_checked : -1,
         check_id: check?.id
       };
     });

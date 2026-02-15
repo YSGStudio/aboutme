@@ -27,7 +27,7 @@ export default function StudentDashboard() {
   const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
   const [editingPlanText, setEditingPlanText] = useState('');
   const [role, setRole] = useState<string>('');
-  const [roleChecked, setRoleChecked] = useState<number>(0);
+  const [roleChecked, setRoleChecked] = useState<number>(-1);
   const [selectedEmotion, setSelectedEmotion] = useState<string>('');
   const [emotionReason, setEmotionReason] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -200,7 +200,7 @@ export default function StudentDashboard() {
       setRole(infoResponse.data.role || '');
       
       const checkResponse = await axios.get(`${API_URL}/student/role/check/today`);
-      setRoleChecked(checkResponse.data.is_checked || 0);
+      setRoleChecked(checkResponse.data.is_checked ?? -1);
     } catch (error) {
       console.error('교실역할 정보 조회 실패:', error);
     }

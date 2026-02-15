@@ -41,7 +41,7 @@ router.get('/role/check/today', (req: AuthRequest, res) => {
 
     res.json({
       role: student?.role || '',
-      is_checked: roleCheck ? roleCheck.is_checked : 0
+      is_checked: roleCheck ? roleCheck.is_checked : -1
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
