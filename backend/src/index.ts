@@ -26,7 +26,9 @@ app.use(cors({
 app.use(express.json());
 
 // 데이터베이스 초기화
-initDatabase();
+initDatabase().catch((error) => {
+  console.error('데이터베이스 초기화 실패:', error);
+});
 
 // API 라우트 설정
 app.use('/api/auth', authRoutes);

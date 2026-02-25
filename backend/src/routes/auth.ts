@@ -15,7 +15,7 @@ router.post('/teacher/login', async (req, res) => {
       return res.status(400).json({ error: '이메일과 비밀번호를 입력해주세요.' });
     }
 
-    const teacher = db.getTeacherByEmail(email);
+    const teacher = await db.getTeacherByEmail(email);
 
     if (!teacher) {
       return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' });
@@ -52,14 +52,14 @@ router.post('/teacher/register', async (req, res) => {
     }
 
     // 이미 존재하는 이메일인지 확인
-    const existing = db.getTeacherByEmail(email);
+    const existing = await db.getTeacherByEmail(email);
     if (existing) {
       return res.status(400).json({ error: '이미 등록된 이메일입니다.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const teacherId = db.createTeacher(email, hashedPassword, classCode);
+    const teacherId = await db.createTeacher(email, hashedPassword, classCode);
 
     const token = generateToken(teacherId, 'teacher');
 
@@ -78,7 +78,7 @@ router.post('/teacher/register', async (req, res) => {
 });
 
 // 학생 로그인
-router.post('/student/login', (req, res) => {
+router.post('/student/login', async (req, res) => {
   try {
     const { classCode, classNumber } = req.body;
 
@@ -86,7 +86,7 @@ router.post('/student/login', (req, res) => {
       return res.status(400).json({ error: '학급코드와 학급번호를 입력해주세요.' });
     }
 
-    const student = db.getStudentByClassCodeAndNumber(classCode, parseInt(classNumber));
+    const student = await db.getStudentByClassCodeAndNumber(classCode, parseInt(classNumber));
 
     if (!student) {
       return res.status(401).json({ error: '학급코드 또는 학급번호가 올바르지 않습니다.' });
