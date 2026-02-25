@@ -1,9 +1,26 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import pg from 'pg';
 
 dotenv.config();
 
-const { Pool } = pg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 배포 환경에서는 환경 변수로 데이터 디렉토리 설정 가능
+const dataDir = process.env.DATA_DIR || path.join(__dirname, '../data');
+const dbFile = path.join(dataDir, 'planner.json');
+
+interface Database {
+  teachers: Teacher[];
+  students: Student[];
+  plans: Plan[];
+  checkData: CheckData[];
+  roleCheckData: RoleCheckData[];
+  emotionData: EmotionData[];
+  emotionReplies: EmotionReply[];
+}
 
 interface Teacher {
   id: number;
@@ -65,27 +82,53 @@ interface EmotionReply {
   created_at: string;
 }
 
-const connectionString = process.env.DATABASE_URL;
-const isLocalDb = connectionString?.includes('localhost') || connectionString?.includes('127.0.0.1');
-const ssl =
-  process.env.DB_SSL === 'false'
-    ? false
-    : isLocalDb
-    ? false
-    : { rejectUnauthorized: false };
+let db: Database = {
+  teachers: [],
+  students: [],
+  plans: [],
+  checkData: [],
+  roleCheckData: [],
+  emotionData: [],
+  emotionReplies: []
+};
 
+function loadDatabase() {
+  if (fs.existsSync(dbFile)) {
+    const data = fs.readFileSync(dbFile, 'utf-8');
+    db = JSON.parse(data);
+  }
+}
+
+function saveDatabase() {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  fs.writeFileSync(dbFile, JSON.stringify(db, null, 2));
+}
+
+// 데이터베이스 초기화
+loadDatabase();
+
+// 간단한 데이터베이스 인터페이스
 export class SimpleDB {
   private static instance: SimpleDB;
-  private pool: pg.Pool;
+  private teachers: Teacher[] = [];
+  private students: Student[] = [];
+  private plans: Plan[] = [];
+  private checkData: CheckData[] = [];
+  private roleCheckData: RoleCheckData[] = [];
+  private emotionData: EmotionData[] = [];
+  private emotionReplies: EmotionReply[] = [];
+  private teacherIdCounter = 1;
+  private studentIdCounter = 1;
+  private planIdCounter = 1;
+  private checkDataIdCounter = 1;
+  private roleCheckDataIdCounter = 1;
+  private emotionDataIdCounter = 1;
+  private emotionReplyIdCounter = 1;
 
   private constructor() {
-    if (!connectionString) {
-      throw new Error('DATABASE_URL 환경 변수가 설정되지 않았습니다.');
-    }
-    this.pool = new Pool({
-      connectionString,
-      ssl
-    });
+    this.load();
   }
 
   static getInstance(): SimpleDB {
@@ -95,209 +138,244 @@ export class SimpleDB {
     return SimpleDB.instance;
   }
 
-  async ping() {
-    await this.pool.query('SELECT 1');
+  private load() {
+    if (fs.existsSync(dbFile)) {
+      const data = JSON.parse(fs.readFileSync(dbFile, 'utf-8'));
+      this.teachers = data.teachers || [];
+      this.students = data.students || [];
+      this.plans = data.plans || [];
+      this.checkData = data.checkData || [];
+      this.roleCheckData = data.roleCheckData || [];
+      this.emotionData = data.emotionData || [];
+      this.emotionReplies = data.emotionReplies || [];
+      
+      // ID 카운터 설정
+      if (this.teachers.length > 0) {
+        this.teacherIdCounter = Math.max(...this.teachers.map(t => t.id)) + 1;
+      }
+      if (this.students.length > 0) {
+        this.studentIdCounter = Math.max(...this.students.map(s => s.id)) + 1;
+      }
+      if (this.plans.length > 0) {
+        this.planIdCounter = Math.max(...this.plans.map(p => p.id)) + 1;
+      }
+      if (this.checkData.length > 0) {
+        this.checkDataIdCounter = Math.max(...this.checkData.map(c => c.id)) + 1;
+      }
+      if (this.roleCheckData.length > 0) {
+        this.roleCheckDataIdCounter = Math.max(...this.roleCheckData.map(r => r.id)) + 1;
+      }
+      if (this.emotionData.length > 0) {
+        this.emotionDataIdCounter = Math.max(...this.emotionData.map(e => e.id)) + 1;
+      }
+      if (this.emotionReplies.length > 0) {
+        this.emotionReplyIdCounter = Math.max(...this.emotionReplies.map(r => r.id)) + 1;
+      }
+    }
+  }
+
+  private save() {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    fs.writeFileSync(dbFile, JSON.stringify({
+      teachers: this.teachers,
+      students: this.students,
+      plans: this.plans,
+      checkData: this.checkData,
+      roleCheckData: this.roleCheckData,
+      emotionData: this.emotionData,
+      emotionReplies: this.emotionReplies
+    }, null, 2));
   }
 
   // Teachers
-  async createTeacher(email: string, password: string, classCode: string): Promise<number> {
-    const result = await this.pool.query(
-      'INSERT INTO teachers (email, password, class_code) VALUES ($1, $2, $3) RETURNING id',
-      [email, password, classCode]
-    );
-    return result.rows[0].id;
+  createTeacher(email: string, password: string, classCode: string): number {
+    const id = this.teacherIdCounter++;
+    this.teachers.push({
+      id,
+      email,
+      password,
+      class_code: classCode,
+      created_at: new Date().toISOString()
+    });
+    this.save();
+    return id;
   }
 
-  async getTeacherByEmail(email: string): Promise<Teacher | undefined> {
-    const result = await this.pool.query('SELECT * FROM teachers WHERE email = $1 LIMIT 1', [email]);
-    return result.rows[0];
+  getTeacherByEmail(email: string): Teacher | undefined {
+    return this.teachers.find(t => t.email === email);
   }
 
-  async getTeacherById(id: number): Promise<Teacher | undefined> {
-    const result = await this.pool.query('SELECT * FROM teachers WHERE id = $1 LIMIT 1', [id]);
-    return result.rows[0];
+  getTeacherById(id: number): Teacher | undefined {
+    return this.teachers.find(t => t.id === id);
   }
 
   // Students
-  async createStudent(teacherId: number, name: string, classNumber: number, classCode: string, role?: string): Promise<number> {
-    const result = await this.pool.query(
-      'INSERT INTO students (teacher_id, name, class_number, class_code, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [teacherId, name, classNumber, classCode, role || '']
-    );
-    return result.rows[0].id;
+  createStudent(teacherId: number, name: string, classNumber: number, classCode: string, role?: string): number {
+    const id = this.studentIdCounter++;
+    this.students.push({
+      id,
+      teacher_id: teacherId,
+      name,
+      class_number: classNumber,
+      class_code: classCode,
+      role: role || '',
+      created_at: new Date().toISOString()
+    });
+    this.save();
+    return id;
   }
 
-  async updateStudent(id: number, name?: string, classNumber?: number, role?: string) {
-    const updates: string[] = [];
-    const values: Array<string | number> = [];
-
-    if (name !== undefined) {
-      values.push(name);
-      updates.push(`name = $${values.length}`);
+  updateStudent(id: number, name?: string, classNumber?: number, role?: string) {
+    const student = this.students.find(s => s.id === id);
+    if (student) {
+      if (name !== undefined) student.name = name;
+      if (classNumber !== undefined) student.class_number = classNumber;
+      if (role !== undefined) student.role = role;
+      this.save();
     }
-    if (classNumber !== undefined) {
-      values.push(classNumber);
-      updates.push(`class_number = $${values.length}`);
-    }
-    if (role !== undefined) {
-      values.push(role);
-      updates.push(`role = $${values.length}`);
-    }
-
-    if (updates.length === 0) {
-      return;
-    }
-
-    values.push(id);
-    await this.pool.query(`UPDATE students SET ${updates.join(', ')} WHERE id = $${values.length}`, values);
   }
 
-  async getStudentByClassCodeAndNumber(classCode: string, classNumber: number): Promise<Student | undefined> {
-    const result = await this.pool.query(
-      'SELECT * FROM students WHERE class_code = $1 AND class_number = $2 LIMIT 1',
-      [classCode, classNumber]
-    );
-    return result.rows[0];
+  getStudentByClassCodeAndNumber(classCode: string, classNumber: number): Student | undefined {
+    return this.students.find(s => s.class_code === classCode && s.class_number === classNumber);
   }
 
-  async getStudentsByTeacherId(teacherId: number): Promise<Student[]> {
-    const result = await this.pool.query('SELECT * FROM students WHERE teacher_id = $1 ORDER BY class_number ASC', [teacherId]);
-    return result.rows;
+  getStudentsByTeacherId(teacherId: number): Student[] {
+    return this.students.filter(s => s.teacher_id === teacherId);
   }
 
-  async getStudentById(id: number): Promise<Student | undefined> {
-    const result = await this.pool.query('SELECT * FROM students WHERE id = $1 LIMIT 1', [id]);
-    return result.rows[0];
+  getStudentById(id: number): Student | undefined {
+    return this.students.find(s => s.id === id);
   }
 
-  async deleteStudent(id: number) {
-    await this.pool.query('DELETE FROM students WHERE id = $1', [id]);
+  deleteStudent(id: number) {
+    this.students = this.students.filter(s => s.id !== id);
+    this.plans = this.plans.filter(p => p.student_id !== id);
+    this.checkData = this.checkData.filter(c => c.student_id !== id);
+    this.save();
   }
 
   // Plans
-  async createPlan(studentId: number, planText: string, displayOrder: number): Promise<number> {
-    const result = await this.pool.query(
-      'INSERT INTO plans (student_id, plan_text, display_order) VALUES ($1, $2, $3) RETURNING id',
-      [studentId, planText, displayOrder]
-    );
-    return result.rows[0].id;
+  createPlan(studentId: number, planText: string, displayOrder: number): number {
+    const id = this.planIdCounter++;
+    this.plans.push({
+      id,
+      student_id: studentId,
+      plan_text: planText,
+      display_order: displayOrder,
+      created_at: new Date().toISOString()
+    });
+    this.save();
+    return id;
   }
 
-  async getPlansByStudentId(studentId: number): Promise<Plan[]> {
-    const result = await this.pool.query(
-      'SELECT * FROM plans WHERE student_id = $1 ORDER BY display_order ASC',
-      [studentId]
-    );
-    return result.rows;
+  getPlansByStudentId(studentId: number): Plan[] {
+    return this.plans.filter(p => p.student_id === studentId).sort((a, b) => a.display_order - b.display_order);
   }
 
-  async getPlanById(id: number): Promise<Plan | undefined> {
-    const result = await this.pool.query('SELECT * FROM plans WHERE id = $1 LIMIT 1', [id]);
-    return result.rows[0];
+  getPlanById(id: number): Plan | undefined {
+    return this.plans.find(p => p.id === id);
   }
 
-  async updatePlan(id: number, planText: string) {
-    await this.pool.query('UPDATE plans SET plan_text = $1 WHERE id = $2', [planText, id]);
+  updatePlan(id: number, planText: string) {
+    const plan = this.plans.find(p => p.id === id);
+    if (plan) {
+      plan.plan_text = planText;
+      this.save();
+    }
   }
 
-  async deletePlan(id: number) {
-    await this.pool.query('DELETE FROM plans WHERE id = $1', [id]);
+  deletePlan(id: number) {
+    this.plans = this.plans.filter(p => p.id !== id);
+    this.checkData = this.checkData.filter(c => c.plan_id !== id);
+    this.save();
   }
 
-  async updatePlanOrder(id: number, displayOrder: number) {
-    await this.pool.query('UPDATE plans SET display_order = $1 WHERE id = $2', [displayOrder, id]);
+  updatePlanOrder(id: number, displayOrder: number) {
+    const plan = this.plans.find(p => p.id === id);
+    if (plan) {
+      plan.display_order = displayOrder;
+      this.save();
+    }
   }
 
-  async getMaxDisplayOrder(studentId: number): Promise<number> {
-    const result = await this.pool.query(
-      'SELECT COALESCE(MAX(display_order), 0) AS max_order FROM plans WHERE student_id = $1',
-      [studentId]
-    );
-    return parseInt(result.rows[0].max_order, 10) || 0;
+  getMaxDisplayOrder(studentId: number): number {
+    const plans = this.plans.filter(p => p.student_id === studentId);
+    if (plans.length === 0) return 0;
+    return Math.max(...plans.map(p => p.display_order));
   }
 
   // Check Data
-  async getCheckData(studentId: number, date?: string): Promise<CheckData[]> {
+  getCheckData(studentId: number, date?: string): CheckData[] {
+    let data = this.checkData.filter(c => c.student_id === studentId);
     if (date) {
-      const result = await this.pool.query(
-        'SELECT * FROM check_data WHERE student_id = $1 AND check_date = $2',
-        [studentId, date]
-      );
-      return result.rows;
+      data = data.filter(c => c.check_date === date);
     }
-    const result = await this.pool.query('SELECT * FROM check_data WHERE student_id = $1', [studentId]);
-    return result.rows;
+    return data;
   }
 
-  async getTodayChecks(studentId: number, date: string): Promise<Array<{ plan_id: number; plan_text: string; display_order: number; is_checked: number; check_id?: number }>> {
-    const result = await this.pool.query<{
-      plan_id: number;
-      plan_text: string;
-      display_order: number;
-      is_checked: number | null;
-      check_id: number | null;
-    }>(
-      `SELECT p.id AS plan_id,
-              p.plan_text,
-              p.display_order,
-              c.is_checked,
-              c.id AS check_id
-       FROM plans p
-       LEFT JOIN check_data c
-         ON c.plan_id = p.id
-        AND c.student_id = $1
-        AND c.check_date = $2
-       WHERE p.student_id = $1
-       ORDER BY p.display_order ASC`,
-      [studentId, date]
+  getTodayChecks(studentId: number, date: string): Array<{ plan_id: number; plan_text: string; display_order: number; is_checked: number; check_id?: number }> {
+    const plans = this.getPlansByStudentId(studentId);
+    const checks = this.checkData.filter(c => c.student_id === studentId && c.check_date === date);
+    
+    return plans.map(plan => {
+      const check = checks.find(c => c.plan_id === plan.id);
+      return {
+        plan_id: plan.id,
+        plan_text: plan.plan_text,
+        display_order: plan.display_order,
+        is_checked: check ? check.is_checked : -1,
+        check_id: check?.id
+      };
+    });
+  }
+
+  upsertCheck(studentId: number, planId: number, date: string, isChecked: number) {
+    const existing = this.checkData.find(
+      c => c.student_id === studentId && c.plan_id === planId && c.check_date === date
     );
 
-    return result.rows.map((row: { plan_id: number; plan_text: string; display_order: number; is_checked: number | null; check_id: number | null; }) => ({
-      plan_id: row.plan_id,
-      plan_text: row.plan_text,
-      display_order: row.display_order,
-      is_checked: row.is_checked ?? -1,
-      check_id: row.check_id ?? undefined
-    }));
+    if (existing) {
+      existing.is_checked = isChecked;
+    } else {
+      const id = this.checkDataIdCounter++;
+      this.checkData.push({
+        id,
+        student_id: studentId,
+        plan_id: planId,
+        check_date: date,
+        is_checked: isChecked,
+        created_at: new Date().toISOString()
+      });
+    }
+    this.save();
   }
 
-  async upsertCheck(studentId: number, planId: number, date: string, isChecked: number) {
-    await this.pool.query(
-      `INSERT INTO check_data (student_id, plan_id, check_date, is_checked)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (student_id, plan_id, check_date)
-       DO UPDATE SET is_checked = EXCLUDED.is_checked`,
-      [studentId, planId, date, isChecked]
-    );
-  }
-
-  async getStudentStatus(teacherId: number, date: string): Promise<Array<{ id: number; name: string; class_number: number; isCompleted: boolean; checkedCount: number; totalCount: number; roleChecked: boolean; emotionChecked: boolean }>> {
-    const students = await this.getStudentsByTeacherId(teacherId);
-
-    const results = [];
-    for (const student of students) {
-      const plans = await this.getPlansByStudentId(student.id);
-      const checks = await this.pool.query<{ is_checked: number }>(
-        'SELECT is_checked FROM check_data WHERE student_id = $1 AND check_date = $2',
-        [student.id, date]
-      );
-      const checkValues = (checks.rows as Array<{ is_checked: number }>).map((r) => r.is_checked);
-
-      const checkedCount = checkValues.filter((v) => v === 1 || v === 0).length;
+  getStudentStatus(teacherId: number, date: string): Array<{ id: number; name: string; class_number: number; isCompleted: boolean; checkedCount: number; totalCount: number; roleChecked: boolean; emotionChecked: boolean }> {
+    const students = this.getStudentsByTeacherId(teacherId);
+    return students.map(student => {
+      const plans = this.getPlansByStudentId(student.id);
+      const checks = this.checkData.filter(c => c.student_id === student.id && c.check_date === date);
+      // 완료(1) 또는 미완료(0) 모두 체크된 것으로 간주
+      const checkedCount = checks.filter(c => c.is_checked === 1 || c.is_checked === 0).length;
       const totalCount = plans.length;
-
-      const hasRole = !!(student.role && student.role.trim() !== '');
-      const roleCheck = hasRole ? await this.getRoleCheck(student.id, date) : null;
+      
+      // 교실역할 체크 확인
+      const hasRole = student.role && student.role.trim() !== '';
+      const roleCheck = hasRole ? this.getRoleCheck(student.id, date) : null;
       const roleChecked = !hasRole || (roleCheck && roleCheck.is_checked === 1);
 
-      const emotionData = await this.getEmotionData(student.id, date);
+      // 감정 체크 확인
+      const emotionData = this.getEmotionData(student.id, date);
       const emotionChecked = !!(emotionData && emotionData.emotion && emotionData.emotion.trim() !== '');
-
-      const completedCount = checkValues.filter((v) => v === 1).length;
+      
+      // 계획, 교실역할, 감정을 모두 완료해야 완전히 완료 (완료(1)로 체크된 것만 완료로 간주)
+      const completedCount = checks.filter(c => c.is_checked === 1).length;
       const plansCompleted = totalCount > 0 && completedCount === totalCount;
       const isCompleted = plansCompleted && roleChecked && emotionChecked;
-
-      results.push({
+      
+      return {
         id: student.id,
         name: student.name,
         class_number: student.class_number,
@@ -306,193 +384,211 @@ export class SimpleDB {
         totalCount,
         roleChecked: !!roleChecked,
         emotionChecked
+      };
+    });
+  }
+
+  getDailyStats(studentId: number): Array<{ check_date: string; total_plans: number; checked_plans: number; success_rate: number }> {
+    const plans = this.getPlansByStudentId(studentId);
+    const planIds = plans.map(p => p.id);
+    const checks = this.checkData.filter(c => c.student_id === studentId && planIds.includes(c.plan_id));
+    
+    const dateMap: Record<string, { total: number; checked: number }> = {};
+    
+    planIds.forEach(planId => {
+      const planChecks = checks.filter(c => c.plan_id === planId);
+      planChecks.forEach(check => {
+        if (!dateMap[check.check_date]) {
+          dateMap[check.check_date] = { total: 0, checked: 0 };
+        }
+        dateMap[check.check_date].total++;
+        if (check.is_checked === 1) {
+          dateMap[check.check_date].checked++;
+        }
       });
-    }
-
-    return results;
-  }
-
-  async getDailyStats(studentId: number): Promise<Array<{ check_date: string; total_plans: number; checked_plans: number; success_rate: number }>> {
-    const result = await this.pool.query<{
-      check_date: string;
-      total_plans: string;
-      checked_plans: string | null;
-    }>(
-      `SELECT check_date,
-              COUNT(*) AS total_plans,
-              SUM(CASE WHEN is_checked = 1 THEN 1 ELSE 0 END) AS checked_plans
-       FROM check_data
-       WHERE student_id = $1
-       GROUP BY check_date
-       ORDER BY check_date DESC`,
-      [studentId]
-    );
-
-    return result.rows.map((row: { check_date: string; total_plans: string; checked_plans: string | null }) => {
-      const total = parseInt(row.total_plans, 10) || 0;
-      const checked = parseInt(row.checked_plans ?? '0', 10) || 0;
-      return {
-        check_date: row.check_date,
-        total_plans: total,
-        checked_plans: checked,
-        success_rate: total > 0 ? Math.round((checked / total) * 100 * 100) / 100 : 0
-      };
-    });
-  }
-
-  async getPlanStats(studentId: number): Promise<Array<{ id: number; plan_text: string; total_checks: number; checked_count: number; success_rate: number }>> {
-    const result = await this.pool.query<{
-      id: number;
-      plan_text: string;
-      total_checks: string;
-      checked_count: string | null;
-    }>(
-      `SELECT p.id,
-              p.plan_text,
-              COUNT(c.id) AS total_checks,
-              SUM(CASE WHEN c.is_checked = 1 THEN 1 ELSE 0 END) AS checked_count
-       FROM plans p
-       LEFT JOIN check_data c ON c.plan_id = p.id
-       WHERE p.student_id = $1
-       GROUP BY p.id
-       ORDER BY p.id ASC`,
-      [studentId]
-    );
-
-    const stats: Array<{ id: number; plan_text: string; total_checks: number; checked_count: number; success_rate: number }> = result.rows.map((row: { id: number; plan_text: string; total_checks: string; checked_count: string | null }) => {
-      const total = parseInt(row.total_checks, 10) || 0;
-      const checked = parseInt(row.checked_count ?? '0', 10) || 0;
-      return {
-        id: row.id,
-        plan_text: row.plan_text,
-        total_checks: total,
-        checked_count: checked,
-        success_rate: total > 0 ? Math.round((checked / total) * 100 * 100) / 100 : 0
-      };
     });
 
-    return stats.sort((a, b) => b.success_rate - a.success_rate);
+    return Object.entries(dateMap)
+      .map(([date, stats]) => ({
+        check_date: date,
+        total_plans: stats.total,
+        checked_plans: stats.checked,
+        success_rate: stats.total > 0 ? Math.round((stats.checked / stats.total) * 100 * 100) / 100 : 0
+      }))
+      .sort((a, b) => b.check_date.localeCompare(a.check_date));
   }
 
-  async getUncheckedPlansByDate(studentId: number, date: string): Promise<Array<{ plan_id: number; plan_text: string; display_order: number }>> {
-    const result = await this.pool.query(
-      `SELECT p.id AS plan_id, p.plan_text, p.display_order
-       FROM plans p
-       LEFT JOIN check_data c
-         ON c.plan_id = p.id
-        AND c.student_id = $1
-        AND c.check_date = $2
-       WHERE p.student_id = $1
-         AND (c.id IS NULL OR c.is_checked = 0)
-       ORDER BY p.display_order ASC`,
-      [studentId, date]
-    );
-    return result.rows;
+  getPlanStats(studentId: number): Array<{ id: number; plan_text: string; total_checks: number; checked_count: number; success_rate: number }> {
+    const plans = this.getPlansByStudentId(studentId);
+    return plans.map(plan => {
+      const checks = this.checkData.filter(c => c.plan_id === plan.id);
+      const checkedCount = checks.filter(c => c.is_checked === 1).length;
+      const totalChecks = checks.length;
+      return {
+        id: plan.id,
+        plan_text: plan.plan_text,
+        total_checks: totalChecks,
+        checked_count: checkedCount,
+        success_rate: totalChecks > 0 ? Math.round((checkedCount / totalChecks) * 100 * 100) / 100 : 0
+      };
+    }).sort((a, b) => b.success_rate - a.success_rate);
+  }
+
+  getUncheckedPlansByDate(studentId: number, date: string): Array<{ plan_id: number; plan_text: string; display_order: number }> {
+    const plans = this.getPlansByStudentId(studentId);
+    const checks = this.checkData.filter(c => c.student_id === studentId && c.check_date === date);
+    
+    const uncheckedPlans: Array<{ plan_id: number; plan_text: string; display_order: number }> = [];
+    
+    plans.forEach(plan => {
+      const check = checks.find(c => c.plan_id === plan.id);
+      // 체크 데이터가 없거나 미완료(0)인 경우만 미완료로 표시 (미완료도 체크된 것으로 간주하지만, 미완료 목록에는 표시)
+      if (!check || check.is_checked === 0) {
+        uncheckedPlans.push({
+          plan_id: plan.id,
+          plan_text: plan.plan_text,
+          display_order: plan.display_order
+        });
+      }
+    });
+    
+    return uncheckedPlans.sort((a, b) => a.display_order - b.display_order);
   }
 
   // Role Check Data
-  async getRoleCheck(studentId: number, date: string): Promise<RoleCheckData | undefined> {
-    const result = await this.pool.query(
-      'SELECT * FROM role_check_data WHERE student_id = $1 AND check_date = $2 LIMIT 1',
-      [studentId, date]
+  getRoleCheck(studentId: number, date: string): RoleCheckData | undefined {
+    return this.roleCheckData.find(
+      r => r.student_id === studentId && r.check_date === date
     );
-    return result.rows[0];
   }
 
-  async upsertRoleCheck(studentId: number, date: string, isChecked: number) {
-    await this.pool.query(
-      `INSERT INTO role_check_data (student_id, check_date, is_checked)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (student_id, check_date)
-       DO UPDATE SET is_checked = EXCLUDED.is_checked`,
-      [studentId, date, isChecked]
+  upsertRoleCheck(studentId: number, date: string, isChecked: number) {
+    const existing = this.roleCheckData.find(
+      r => r.student_id === studentId && r.check_date === date
     );
+
+    if (existing) {
+      existing.is_checked = isChecked;
+    } else {
+      const id = this.roleCheckDataIdCounter++;
+      this.roleCheckData.push({
+        id,
+        student_id: studentId,
+        check_date: date,
+        is_checked: isChecked,
+        created_at: new Date().toISOString()
+      });
+    }
+    this.save();
   }
 
   // Emotion Data
-  async getEmotionData(studentId: number, date: string): Promise<EmotionData | undefined> {
-    const result = await this.pool.query(
-      'SELECT * FROM emotion_data WHERE student_id = $1 AND check_date = $2 LIMIT 1',
-      [studentId, date]
-    );
-    return result.rows[0];
-  }
-
-  async upsertEmotionData(studentId: number, date: string, emotion: string, reason: string) {
-    await this.pool.query(
-      `INSERT INTO emotion_data (student_id, check_date, emotion, reason)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (student_id, check_date)
-       DO UPDATE SET emotion = EXCLUDED.emotion, reason = EXCLUDED.reason`,
-      [studentId, date, emotion, reason]
+  getEmotionData(studentId: number, date: string): EmotionData | undefined {
+    return this.emotionData.find(
+      e => e.student_id === studentId && e.check_date === date
     );
   }
 
-  async getClassEmotions(classCode: string, date: string): Promise<Array<{
+  upsertEmotionData(studentId: number, date: string, emotion: string, reason: string) {
+    const existing = this.emotionData.find(
+      e => e.student_id === studentId && e.check_date === date
+    );
+
+    if (existing) {
+      existing.emotion = emotion;
+      existing.reason = reason;
+    } else {
+      const id = this.emotionDataIdCounter++;
+      this.emotionData.push({
+        id,
+        student_id: studentId,
+        check_date: date,
+        emotion,
+        reason,
+        created_at: new Date().toISOString()
+      });
+    }
+    this.save();
+  }
+
+  getClassEmotions(classCode: string, date: string): Array<{
     emotion_id: number;
     student_id: number;
     student_name: string;
     emotion: string;
     reason: string;
     created_at: string;
-  }>> {
-    const result = await this.pool.query(
-      `SELECT e.id AS emotion_id,
-              e.student_id,
-              s.name AS student_name,
-              e.emotion,
-              e.reason,
-              e.created_at
-       FROM emotion_data e
-       JOIN students s ON s.id = e.student_id
-       WHERE s.class_code = $1
-         AND e.check_date = $2
-         AND e.emotion <> ''
-       ORDER BY e.created_at DESC`,
-      [classCode, date]
+  }> {
+    // 같은 반 학생들 찾기
+    const classStudents = this.students.filter(s => s.class_code === classCode);
+    const studentIds = classStudents.map(s => s.id);
+
+    // 해당 날짜의 감정 데이터 가져오기
+    const emotions = this.emotionData.filter(
+      e => studentIds.includes(e.student_id) && e.check_date === date && e.emotion
     );
-    return result.rows;
+
+    // 학생 정보와 함께 반환
+    return emotions.map(emotion => {
+      const student = classStudents.find(s => s.id === emotion.student_id);
+      return {
+        emotion_id: emotion.id,
+        student_id: emotion.student_id,
+        student_name: student?.name || '알 수 없음',
+        emotion: emotion.emotion,
+        reason: emotion.reason,
+        created_at: emotion.created_at
+      };
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
 
   // Emotion Replies
-  async getEmotionReplies(emotionDataId: number): Promise<EmotionReply[]> {
-    const result = await this.pool.query(
-      'SELECT * FROM emotion_replies WHERE emotion_data_id = $1 ORDER BY created_at ASC',
-      [emotionDataId]
-    );
-    return result.rows;
+  getEmotionReplies(emotionDataId: number): EmotionReply[] {
+    return this.emotionReplies.filter(r => r.emotion_data_id === emotionDataId)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }
 
-  async addEmotionReply(emotionDataId: number, teacherId: number, replyText: string): Promise<number> {
-    const result = await this.pool.query(
-      'INSERT INTO emotion_replies (emotion_data_id, teacher_id, reply_text) VALUES ($1, $2, $3) RETURNING id',
-      [emotionDataId, teacherId, replyText]
-    );
-    return result.rows[0].id;
+  addEmotionReply(emotionDataId: number, teacherId: number, replyText: string): number {
+    const id = this.emotionReplyIdCounter++;
+    this.emotionReplies.push({
+      id,
+      emotion_data_id: emotionDataId,
+      teacher_id: teacherId,
+      reply_text: replyText,
+      created_at: new Date().toISOString()
+    });
+    this.save();
+    return id;
   }
 
-  async deleteEmotionReply(replyId: number, teacherId: number) {
-    await this.pool.query('DELETE FROM emotion_replies WHERE id = $1 AND teacher_id = $2', [replyId, teacherId]);
+  deleteEmotionReply(replyId: number, teacherId: number) {
+    const reply = this.emotionReplies.find(r => r.id === replyId);
+    if (reply && reply.teacher_id === teacherId) {
+      this.emotionReplies = this.emotionReplies.filter(r => r.id !== replyId);
+      this.save();
+    }
   }
 
-  async getStudentEmotionStats(studentId: number): Promise<Array<{ emotion: string; count: number }>> {
-    const result = await this.pool.query(
-      `SELECT emotion, COUNT(*)::int AS count
-       FROM emotion_data
-       WHERE student_id = $1 AND emotion <> ''
-       GROUP BY emotion
-       ORDER BY count DESC
-       LIMIT 5`,
-      [studentId]
-    );
-    return result.rows;
+  getStudentEmotionStats(studentId: number): Array<{ emotion: string; count: number }> {
+    const studentEmotions = this.emotionData.filter(e => e.student_id === studentId && e.emotion);
+    
+    // 감정별로 카운트
+    const emotionCount: Record<string, number> = {};
+    studentEmotions.forEach(e => {
+      emotionCount[e.emotion] = (emotionCount[e.emotion] || 0) + 1;
+    });
+
+    // 배열로 변환하고 정렬
+    return Object.entries(emotionCount)
+      .map(([emotion, count]) => ({ emotion, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5); // 상위 5개만
   }
 }
 
-export async function initDatabase() {
+export function initDatabase() {
   const db = SimpleDB.getInstance();
-  await db.ping();
-  console.log('데이터베이스 초기화 완료 (Postgres)');
+  console.log('데이터베이스 초기화 완료 (JSON 파일 기반)');
 }
 
 export function getDatabase() {

@@ -10,10 +10,10 @@ router.use(authenticateToken);
 router.use(requireStudent);
 
 // 학생 정보 조회
-router.get('/info', async (req: AuthRequest, res) => {
+router.get('/info', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
-    const student = await db.getStudentById(studentId);
+    const student = db.getStudentById(studentId);
 
     if (!student) {
       return res.status(404).json({ error: '학생을 찾을 수 없습니다.' });
@@ -32,12 +32,12 @@ router.get('/info', async (req: AuthRequest, res) => {
 });
 
 // 오늘의 교실역할 체크 조회
-router.get('/role/check/today', async (req: AuthRequest, res) => {
+router.get('/role/check/today', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const today = new Date().toISOString().split('T')[0];
-    const student = await db.getStudentById(studentId);
-    const roleCheck = await db.getRoleCheck(studentId, today);
+    const student = db.getStudentById(studentId);
+    const roleCheck = db.getRoleCheck(studentId, today);
 
     res.json({
       role: student?.role || '',
@@ -49,7 +49,7 @@ router.get('/role/check/today', async (req: AuthRequest, res) => {
 });
 
 // 교실역할 체크 상태 변경
-router.post('/role/check', async (req: AuthRequest, res) => {
+router.post('/role/check', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const { date, isChecked } = req.body;
@@ -58,7 +58,7 @@ router.post('/role/check', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: '날짜를 입력해주세요.' });
     }
 
-    await db.upsertRoleCheck(studentId, date, isChecked ? 1 : 0);
+    db.upsertRoleCheck(studentId, date, isChecked ? 1 : 0);
 
     res.json({ message: '교실역할 체크 상태가 업데이트되었습니다.' });
   } catch (error: any) {
@@ -67,11 +67,11 @@ router.post('/role/check', async (req: AuthRequest, res) => {
 });
 
 // 오늘의 감정 데이터 조회
-router.get('/emotion/today', async (req: AuthRequest, res) => {
+router.get('/emotion/today', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const today = new Date().toISOString().split('T')[0];
-    const emotionData = await db.getEmotionData(studentId, today);
+    const emotionData = db.getEmotionData(studentId, today);
 
     res.json({
       emotion: emotionData?.emotion || '',
@@ -83,7 +83,7 @@ router.get('/emotion/today', async (req: AuthRequest, res) => {
 });
 
 // 감정 데이터 저장
-router.post('/emotion', async (req: AuthRequest, res) => {
+router.post('/emotion', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const { date, emotion, reason } = req.body;
@@ -92,7 +92,7 @@ router.post('/emotion', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: '날짜와 감정을 입력해주세요.' });
     }
 
-    await db.upsertEmotionData(studentId, date, emotion, reason || '');
+    db.upsertEmotionData(studentId, date, emotion, reason || '');
 
     res.json({ message: '감정이 저장되었습니다.' });
   } catch (error: any) {
@@ -101,21 +101,21 @@ router.post('/emotion', async (req: AuthRequest, res) => {
 });
 
 // 같은 반 학생들의 감정 피드 조회
-router.get('/emotion/feed/:date', async (req: AuthRequest, res) => {
+router.get('/emotion/feed/:date', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const date = req.params.date;
     
-    const student = await db.getStudentById(studentId);
+    const student = db.getStudentById(studentId);
     if (!student) {
       return res.status(404).json({ error: '학생을 찾을 수 없습니다.' });
     }
 
-    const feed = await db.getClassEmotions(student.class_code, date);
+    const feed = db.getClassEmotions(student.class_code, date);
     
     // 각 감정에 답글 정보 추가
-    const feedWithReplies = await Promise.all(feed.map(async emotion => {
-      const replies = await db.getEmotionReplies(emotion.emotion_id);
+    const feedWithReplies = feed.map(emotion => {
+      const replies = db.getEmotionReplies(emotion.emotion_id);
       return {
         ...emotion,
         replies: replies.map(reply => ({
@@ -125,7 +125,7 @@ router.get('/emotion/feed/:date', async (req: AuthRequest, res) => {
           created_at: reply.created_at
         }))
       };
-    }));
+    });
 
     res.json(feedWithReplies);
   } catch (error: any) {
@@ -134,10 +134,10 @@ router.get('/emotion/feed/:date', async (req: AuthRequest, res) => {
 });
 
 // 계획 목록 조회
-router.get('/plans', async (req: AuthRequest, res) => {
+router.get('/plans', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
-    const plans = await db.getPlansByStudentId(studentId);
+    const plans = db.getPlansByStudentId(studentId);
 
     res.json(plans.map(p => ({
       id: p.id,
@@ -150,7 +150,7 @@ router.get('/plans', async (req: AuthRequest, res) => {
 });
 
 // 계획 추가
-router.post('/plans', async (req: AuthRequest, res) => {
+router.post('/plans', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const { planText } = req.body;
@@ -160,10 +160,10 @@ router.post('/plans', async (req: AuthRequest, res) => {
     }
 
     // 다음 display_order 찾기
-    const maxOrder = await db.getMaxDisplayOrder(studentId);
+    const maxOrder = db.getMaxDisplayOrder(studentId);
     const nextOrder = maxOrder + 1;
 
-    const planId = await db.createPlan(studentId, planText, nextOrder);
+    const planId = db.createPlan(studentId, planText, nextOrder);
 
     res.status(201).json({
       id: planId,
@@ -176,7 +176,7 @@ router.post('/plans', async (req: AuthRequest, res) => {
 });
 
 // 계획 수정
-router.put('/plans/:id', async (req: AuthRequest, res) => {
+router.put('/plans/:id', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const planId = parseInt(req.params.id);
@@ -187,12 +187,12 @@ router.put('/plans/:id', async (req: AuthRequest, res) => {
     }
 
     // 권한 확인
-    const plan = await db.getPlanById(planId);
+    const plan = db.getPlanById(planId);
     if (!plan || plan.student_id !== studentId) {
       return res.status(404).json({ error: '계획을 찾을 수 없습니다.' });
     }
 
-    await db.updatePlan(planId, planText);
+    db.updatePlan(planId, planText);
 
     res.json({ message: '계획이 수정되었습니다.' });
   } catch (error: any) {
@@ -201,18 +201,18 @@ router.put('/plans/:id', async (req: AuthRequest, res) => {
 });
 
 // 계획 삭제
-router.delete('/plans/:id', async (req: AuthRequest, res) => {
+router.delete('/plans/:id', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const planId = parseInt(req.params.id);
 
     // 권한 확인
-    const plan = await db.getPlanById(planId);
+    const plan = db.getPlanById(planId);
     if (!plan || plan.student_id !== studentId) {
       return res.status(404).json({ error: '계획을 찾을 수 없습니다.' });
     }
 
-    await db.deletePlan(planId);
+    db.deletePlan(planId);
 
     res.json({ message: '계획이 삭제되었습니다.' });
   } catch (error: any) {
@@ -221,19 +221,19 @@ router.delete('/plans/:id', async (req: AuthRequest, res) => {
 });
 
 // 계획 순서 변경
-router.put('/plans/:id/order', async (req: AuthRequest, res) => {
+router.put('/plans/:id/order', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const planId = parseInt(req.params.id);
     const { displayOrder } = req.body;
 
     // 권한 확인
-    const plan = await db.getPlanById(planId);
+    const plan = db.getPlanById(planId);
     if (!plan || plan.student_id !== studentId) {
       return res.status(404).json({ error: '계획을 찾을 수 없습니다.' });
     }
 
-    await db.updatePlanOrder(planId, displayOrder);
+    db.updatePlanOrder(planId, displayOrder);
 
     res.json({ message: '순서가 변경되었습니다.' });
   } catch (error: any) {
@@ -242,12 +242,12 @@ router.put('/plans/:id/order', async (req: AuthRequest, res) => {
 });
 
 // 오늘의 체크 데이터 조회
-router.get('/checks/today', async (req: AuthRequest, res) => {
+router.get('/checks/today', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const today = new Date().toISOString().split('T')[0];
 
-    const checks = await db.getTodayChecks(studentId, today);
+    const checks = db.getTodayChecks(studentId, today);
 
     res.json(checks);
   } catch (error: any) {
@@ -256,7 +256,7 @@ router.get('/checks/today', async (req: AuthRequest, res) => {
 });
 
 // 체크 상태 변경
-router.post('/checks', async (req: AuthRequest, res) => {
+router.post('/checks', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const { planId, date, isChecked } = req.body;
@@ -266,12 +266,12 @@ router.post('/checks', async (req: AuthRequest, res) => {
     }
 
     // 권한 확인
-    const plan = await db.getPlanById(planId);
+    const plan = db.getPlanById(planId);
     if (!plan || plan.student_id !== studentId) {
       return res.status(404).json({ error: '계획을 찾을 수 없습니다.' });
     }
 
-    await db.upsertCheck(studentId, planId, date, isChecked ? 1 : 0);
+    db.upsertCheck(studentId, planId, date, isChecked ? 1 : 0);
 
     res.json({ message: '체크 상태가 업데이트되었습니다.' });
   } catch (error: any) {
@@ -280,13 +280,13 @@ router.post('/checks', async (req: AuthRequest, res) => {
 });
 
 // 통계 데이터 조회
-router.get('/stats', async (req: AuthRequest, res) => {
+router.get('/stats', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
 
-    const dailyStats = await db.getDailyStats(studentId);
-    const planStats = await db.getPlanStats(studentId);
-    const emotionStats = await db.getStudentEmotionStats(studentId);
+    const dailyStats = db.getDailyStats(studentId);
+    const planStats = db.getPlanStats(studentId);
+    const emotionStats = db.getStudentEmotionStats(studentId);
 
     res.json({
       dailyStats,
@@ -299,12 +299,12 @@ router.get('/stats', async (req: AuthRequest, res) => {
 });
 
 // 특정 날짜의 통계 데이터 조회
-router.get('/stats/date/:date', async (req: AuthRequest, res) => {
+router.get('/stats/date/:date', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const date = req.params.date;
 
-    const emotionData = await db.getEmotionData(studentId, date);
+    const emotionData = db.getEmotionData(studentId, date);
 
     res.json({
       date,
@@ -317,12 +317,12 @@ router.get('/stats/date/:date', async (req: AuthRequest, res) => {
 });
 
 // 특정 날짜의 미완료 계획 조회
-router.get('/stats/unchecked/:date', async (req: AuthRequest, res) => {
+router.get('/stats/unchecked/:date', (req: AuthRequest, res) => {
   try {
     const studentId = req.userId!;
     const date = req.params.date;
 
-    const uncheckedPlans = await db.getUncheckedPlansByDate(studentId, date);
+    const uncheckedPlans = db.getUncheckedPlansByDate(studentId, date);
 
     res.json(uncheckedPlans);
   } catch (error: any) {
