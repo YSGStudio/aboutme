@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS teachers (
   id SERIAL PRIMARY KEY,
+  auth_user_id TEXT UNIQUE,
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
   class_code TEXT NOT NULL,
@@ -8,7 +9,9 @@ CREATE TABLE IF NOT EXISTS teachers (
 
 CREATE TABLE IF NOT EXISTS students (
   id SERIAL PRIMARY KEY,
+  auth_user_id TEXT UNIQUE,
   teacher_id INTEGER NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  email TEXT UNIQUE,
   class_number INTEGER NOT NULL,
   name TEXT NOT NULL,
   class_code TEXT NOT NULL,

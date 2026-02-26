@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth, API_URL } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 export default function TeacherLogin() {
   const [isRegister, setIsRegister] = useState(false);
@@ -17,21 +17,97 @@ export default function TeacherLogin() {
     setError('');
 
     try {
-      const endpoint = isRegister ? '/auth/teacher/register' : '/auth/teacher/login';
-      const response = await axios.post(`${API_URL}${endpoint}`, {
-        email,
-        password,
-        classCode: isRegister ? classCode : undefined
-      });
+      if (isRegister) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { type: 'teacher', classCode }
+          }
+        });
+        if (error) throw error;
 
-      login(response.data.token, response.data.user);
+        const authUserId = data.user?.id;
+        if (!authUserId) throw new Error('회원가입에 실패했습니다.');
+
+        const { data: existing } = await supabase
+          .from('teachers')
+          .select('id, class_code, email')
+          .eq('auth_user_id', authUserId)
+          .maybeSingle();
+
+        if (!existing) {
+          const { data: created, error: createError } = await supabase
+            .from('teachers')
+            .insert({
+              auth_user_id: authUserId,
+              email,
+              password: '',
+              class_code: classCode
+            })
+            .select('id, class_code, email')
+            .single();
+          if (createError) throw createError;
+
+          const sessionToken = data.session?.access_token;
+          if (!sessionToken) {
+            setError('이메일 인증 후 로그인해주세요.');
+            return;
+          }
+          login(sessionToken, {
+            id: created.id,
+            email: created.email,
+            classCode: created.class_code,
+            type: 'teacher'
+          });
+        } else {
+          const sessionToken = data.session?.access_token;
+          if (!sessionToken) {
+            setError('이메일 인증 후 로그인해주세요.');
+            return;
+          }
+          login(sessionToken, {
+            id: existing.id,
+            email: existing.email,
+            classCode: existing.class_code,
+            type: 'teacher'
+          });
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
+
+        const authUserId = data.user?.id;
+        if (!authUserId) throw new Error('로그인에 실패했습니다.');
+
+        const { data: teacher, error: fetchError } = await supabase
+          .from('teachers')
+          .select('id, class_code, email')
+          .eq('auth_user_id', authUserId)
+          .single();
+        if (fetchError) throw fetchError;
+
+        const sessionToken = data.session?.access_token;
+        if (sessionToken) {
+          login(sessionToken, {
+            id: teacher.id,
+            email: teacher.email,
+            classCode: teacher.class_code,
+            type: 'teacher'
+          });
+        }
+      }
+
       // localStorage에 저장된 후 네비게이션
       // window.location을 사용하여 강제 리다이렉트 (상태 업데이트 문제 방지)
       setTimeout(() => {
         window.location.href = '/teacher/dashboard';
       }, 100);
     } catch (err: any) {
-      setError(err.response?.data?.error || '로그인에 실패했습니다.');
+      setError(err.message || '로그인에 실패했습니다.');
     }
   };
 

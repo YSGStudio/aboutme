@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { supabase } from '../lib/supabaseClient';
 
 // 환경 변수에서 API URL 가져오기 (배포 시 설정)
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -55,13 +56,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${savedToken}`;
-    }
+    let isMounted = true;
+
+    const syncSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      const sessionToken = data.session?.access_token || null;
+      const storedUser = localStorage.getItem('user');
+
+      if (!isMounted) return;
+      if (sessionToken && storedUser) {
+        setToken(sessionToken);
+        setUser(JSON.parse(storedUser));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionToken}`;
+      }
+    };
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionToken = session?.access_token || null;
+      if (sessionToken) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionToken}`;
+      } else {
+        delete axios.defaults.headers.common['Authorization'];
+      }
+      setToken(sessionToken);
+    });
+
+    syncSession();
+
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const login = (newToken: string, newUser: User) => {

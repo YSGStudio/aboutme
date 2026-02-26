@@ -5,6 +5,7 @@ dotenv.config();
 
 interface Teacher {
   id: number;
+  auth_user_id?: string;
   email: string;
   password: string;
   class_code: string;
@@ -13,7 +14,9 @@ interface Teacher {
 
 interface Student {
   id: number;
+  auth_user_id?: string;
   teacher_id: number;
+  email?: string;
   class_number: number;
   name: string;
   class_code: string;
@@ -98,10 +101,10 @@ export class SimpleDB {
   }
 
   // Teachers
-  async createTeacher(email: string, password: string, classCode: string): Promise<number> {
+  async createTeacher(email: string, password: string, classCode: string, authUserId?: string): Promise<number> {
     const result = await this.pool.query<{ id: number }>(
-      'INSERT INTO teachers (email, password, class_code) VALUES ($1, $2, $3) RETURNING id',
-      [email, password, classCode]
+      'INSERT INTO teachers (auth_user_id, email, password, class_code) VALUES ($1, $2, $3, $4) RETURNING id',
+      [authUserId || null, email, password, classCode]
     );
     return result.rows[0].id;
   }
@@ -116,11 +119,29 @@ export class SimpleDB {
     return result.rows[0];
   }
 
+  async getTeacherByAuthId(authUserId: string): Promise<Teacher | undefined> {
+    const result = await this.pool.query<Teacher>('SELECT * FROM teachers WHERE auth_user_id = $1 LIMIT 1', [authUserId]);
+    return result.rows[0];
+  }
+
+  async getTeacherByClassCode(classCode: string): Promise<Teacher | undefined> {
+    const result = await this.pool.query<Teacher>('SELECT * FROM teachers WHERE class_code = $1 LIMIT 1', [classCode]);
+    return result.rows[0];
+  }
+
   // Students
-  async createStudent(teacherId: number, name: string, classNumber: number, classCode: string, role?: string): Promise<number> {
+  async createStudent(
+    teacherId: number,
+    name: string,
+    classNumber: number,
+    classCode: string,
+    role?: string,
+    authUserId?: string,
+    email?: string
+  ): Promise<number> {
     const result = await this.pool.query<{ id: number }>(
-      'INSERT INTO students (teacher_id, name, class_number, class_code, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-      [teacherId, name, classNumber, classCode, role || '']
+      'INSERT INTO students (auth_user_id, teacher_id, email, name, class_number, class_code, role) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [authUserId || null, teacherId, email || null, name, classNumber, classCode, role || '']
     );
     return result.rows[0].id;
   }
@@ -165,6 +186,11 @@ export class SimpleDB {
 
   async getStudentById(id: number): Promise<Student | undefined> {
     const result = await this.pool.query<Student>('SELECT * FROM students WHERE id = $1 LIMIT 1', [id]);
+    return result.rows[0];
+  }
+
+  async getStudentByAuthId(authUserId: string): Promise<Student | undefined> {
+    const result = await this.pool.query<Student>('SELECT * FROM students WHERE auth_user_id = $1 LIMIT 1', [authUserId]);
     return result.rows[0];
   }
 
