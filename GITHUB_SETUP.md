@@ -1,6 +1,6 @@
 # GitHub 저장소 설정 가이드
 
-Railway와 Vercel에 배포하려면 먼저 GitHub에 코드를 올려야 합니다.
+Vercel에 배포하려면 먼저 GitHub에 코드를 올려야 합니다.
 
 ---
 
@@ -86,7 +86,7 @@ git push -u origin main
 1. **GitHub 저장소 페이지 새로고침**
    - 모든 파일이 업로드되었는지 확인
 
-2. **Railway/Vercel에서 저장소 선택**
+2. **Vercel에서 저장소 선택**
    - 이제 배포 시 이 저장소를 선택하면 됩니다!
 
 ---
@@ -131,7 +131,7 @@ git push -u origin main
 ## 다음 단계
 
 GitHub에 코드가 올라갔다면:
-1. Railway에서 이 저장소 선택하여 백엔드 배포
+1. Vercel에서 이 저장소 선택하여 백엔드 배포
 2. Vercel에서 이 저장소 선택하여 프론트엔드 배포
 
 자세한 배포 방법은 `DEPLOY_RAILWAY_VERCEL.md` 참고!

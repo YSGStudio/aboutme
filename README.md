@@ -27,7 +27,7 @@
 
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + TypeScript
-- **Database**: JSON 파일 기반 (SimpleDB)
+- **Database**: PostgreSQL (Supabase)
 - **Authentication**: JWT
 
 ## 설치 및 실행
@@ -80,7 +80,7 @@ planner/
 │   │       ├── auth.ts       # 인증 라우트
 │   │       ├── teacher.ts    # 교사 라우트
 │   │       └── student.ts    # 학생 라우트
-│   └── data/                 # JSON 데이터베이스 저장 위치
+│   └── sql/                  # 데이터베이스 스키마
 ├── frontend/
 │   └── src/
 │       ├── pages/            # 페이지 컴포넌트
@@ -109,14 +109,14 @@ planner/
 
 ## 배포
 
-배포 가이드는 [DEPLOY.md](./DEPLOY.md)를 참고하세요.
+배포 가이드는 [DEPLOY_SUPABASE_VERCEL.md](./DEPLOY_SUPABASE_VERCEL.md)를 참고하세요.
 
 ### 빠른 배포 요약
 
-1. **백엔드**: Railway 또는 Render에 배포
+1. **백엔드**: Vercel에 배포
 2. **프론트엔드**: Vercel에 배포
 3. 환경 변수 설정:
-   - 백엔드: `PORT`, `JWT_SECRET`
+   - 백엔드: `DATABASE_URL`, `DB_SSL`, `JWT_SECRET`
    - 프론트엔드: `VITE_API_URL` (백엔드 URL)
 
 자세한 내용은 [DEPLOY.md](./DEPLOY.md)를 확인하세요.

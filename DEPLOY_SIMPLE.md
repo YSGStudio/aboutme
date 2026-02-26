@@ -44,14 +44,6 @@
 
 ## 🎯 다른 플랫폼 사용하기
 
-### Railway
-1. "New Project" → "Deploy from GitHub repo"
-2. 저장소 선택
-3. Root Directory: (비워두기)
-4. Build Command: `npm run build`
-5. Start Command: `npm start`
-6. 환경 변수 설정 (위와 동일)
-
 ### Fly.io
 ```bash
 # Fly CLI 설치 후

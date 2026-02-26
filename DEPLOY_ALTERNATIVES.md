@@ -71,7 +71,7 @@
      ```
 
 3. **백엔드 배포**
-   - Render 또는 Railway 사용 (위 방법 1 참고)
+   - Render 사용 (위 방법 1 참고)
    - 또는 Netlify Functions로 마이그레이션 (추가 작업 필요)
 
 ---
@@ -145,7 +145,7 @@ if (process.env.NODE_ENV === 'production') {
 ```
 
 3. **배포**
-   - Render, Railway, Fly.io 등 어느 플랫폼이든 사용 가능
+   - Render, Fly.io 등 어느 플랫폼이든 사용 가능
    - Root Directory를 프로젝트 루트로 설정
    - Build Command: `npm run build`
    - Start Command: `npm start`
@@ -205,7 +205,7 @@ services:
 ```
 
 3. **배포**
-   - Railway, Render, Fly.io 등 Docker 지원 플랫폼 사용
+   - Render, Fly.io 등 Docker 지원 플랫폼 사용
    - 또는 자체 서버에 Docker로 배포
 
 ---
@@ -250,7 +250,7 @@ jobs:
 ```
 
 3. **백엔드**
-   - Render, Railway 등 별도 배포
+   - Render 등 별도 배포
 
 ---
 
@@ -259,7 +259,7 @@ jobs:
 | 방법 | 난이도 | 비용 | 추천도 | 특징 |
 |------|--------|------|--------|------|
 | Render 통합 | ⭐ 쉬움 | 무료 | ⭐⭐⭐⭐⭐ | 하나의 플랫폼, 간단 |
-| Vercel + Railway | ⭐⭐ 보통 | 무료 | ⭐⭐⭐⭐ | 각각 최적화된 플랫폼 |
+| Vercel + Supabase | ⭐⭐ 보통 | 무료 | ⭐⭐⭐⭐ | 각각 최적화된 플랫폼 |
 | 단일 Express | ⭐⭐ 보통 | 무료 | ⭐⭐⭐ | 하나의 서버로 통합 |
 | Docker | ⭐⭐⭐ 어려움 | 무료 | ⭐⭐⭐ | 환경 독립성 |
 | GitHub Pages | ⭐⭐ 보통 | 무료 | ⭐⭐ | 프론트엔드만 |
@@ -270,7 +270,7 @@ jobs:
 
 1. **Render 통합 배포** - 가장 간단하고 빠름
 2. **단일 Express 서버** - 하나의 서버로 관리하고 싶을 때
-3. **Vercel + Railway** - 각 플랫폼의 최적 기능 활용
+3. **Vercel + Supabase** - 각각 최적화된 플랫폼 활용
 
 ---
 

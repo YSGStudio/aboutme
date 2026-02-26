@@ -63,6 +63,6 @@ git remote add origin https://github.com/your-username/aboutme.git
 ## 다음 단계
 
 코드가 GitHub에 올라갔다면:
-1. Railway에서 `aboutme` 저장소 선택하여 백엔드 배포
+1. Vercel에서 `aboutme` 저장소 선택하여 백엔드 배포
 2. Vercel에서 `aboutme` 저장소 선택하여 프론트엔드 배포
 
